@@ -1,0 +1,3 @@
+menuentry "NextDivel" {
+	multiboot /boot/myos.bin
+}

@@ -66,7 +66,6 @@ iso:
 	mkdir -p isodir
 	mkdir -p isodir/boot
 	cp nextdivel.elf isodir/boot/nextdivel.elf
-	cp nextdivel64.elf isodir/boot/nextdivel64.elf
 	mkdir -p isodir/boot/grub
 	cp grub.cfg isodir/boot/grub/grub.cfg
 	grub-mkrescue -o nextdivel.iso isodir
