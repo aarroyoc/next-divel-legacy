@@ -14,7 +14,11 @@
 /* NextDivel author, vendor */
 #define ND_VERSIONS_AUTHOR "Adrian Arroyo Calle"
 #define ND_VERSIONS_VENDOR "Divel"
+#ifdef _LP64
+#define ND_VERSIONS_ARCH "x86_64"
+#else
 #define ND_VERSIONS_ARCH "i386"
+#endif
 /* Common functions */
 bool ND_Versions_CompatibilityCheck(int major, int minor, int patch); /* Says if the kernel supports at least the API for that older kernel*/
 void ND_Versions_Startup();

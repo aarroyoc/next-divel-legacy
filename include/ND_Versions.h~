@@ -3,6 +3,7 @@
 */
 #ifndef ND_VERSIONS_H
 #define ND_VERSIONS_H
+#include "ND_LanguageC.h"
 /* NextDivel Main Version */
 #define ND_VERSIONS_MAJOR 0
 #define ND_VERSIONS_MINOR 1

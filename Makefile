@@ -1,8 +1,10 @@
 #Makefile for build NextDivel OS
 #Compiler
 CC = gcc
+CC64 = gcc -m64
 NASM = nasm
 LD = ld
+LD64 = ld -melf_86_64
 OBJCOPY = objcopy
 #source files
 SOURCES_ASM := $(wildcard *.asm)
@@ -33,23 +35,33 @@ WARNFLAGS   += -Wno-unused-but-set-variable -Wno-unused-result
 WARNFLAGS   += -Wwrite-strings -Wdisabled-optimization -Wpointer-arith
 WARNFLAGS   += -Werror
 ASFLAGS     := -felf
+ASFLAGS64   := -felf64
 CFLAGS      := $(INCLUDES) $(DEPENDFLAGS) $(BASEFLAGS) $(WARNFLAGS) $(NEXTFLAGS)
 CFLAGS      += -std=gnu99
 #Build
 all: nextdivel.img
+all64: nextdivel64.img
+
 nextdivel.elf: $(OBJS) link.ld
 	$(LD) $(OBJS) -Tlink.ld -o $@
- 
+nextdivel64.elf: $(OBJS) link.ld
+	$(LD) $(OBJS) -Tlink.ld -o $@
+
 nextdivel.img: nextdivel.elf
 	$(OBJCOPY) nextdivel.elf -O binary nextdivel.img
+nextdivel64.img: nextdivel64.elf
+	$(OBJCOPY) nextdivel64.elf -O binary nextdivel64.img
  
 clean:
 	$(RM) -f $(OBJS) nextdivel.elf nextdivel.img
- 
+clean64:
+	$(RM) -f $(OBJS) nextdivel64.elf nextdivel64.img
 dist-clean: clean
 	$(RM) -f *.d
 test:
 	qemu-system-i386 -kernel nextdivel.elf
+test64:
+	qemu-system-x86_64 -kernel nextdivel64.elf
 # C.
 %.o: %.c Makefile
 	$(CC) $(CFLAGS) -c $< -o $@
