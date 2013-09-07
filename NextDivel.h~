@@ -1,0 +1,17 @@
+/* NextDivel Common headers for applications */
+#ifndef NEXT_DIVEL
+#error "ERROR: Please build with NextDivel compilers"
+#endif
+#ifndef NEXT_DIVEL_HEADER
+#define NEXT_DIVEL_HEADER
+/* NextDivel Versions*/
+#include "ND_Versions.h"
+/* NextDivel Terminal */
+#include "ND_Terminal.h"
+/* C definitions */
+#if !defined(__cplusplus)
+#include <stdbool.h> /* C doesn't have booleans by default. */
+#endif
+#include <stddef.h>
+#include <stdint.h>
+#endif
