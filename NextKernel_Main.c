@@ -6,11 +6,11 @@
 /* Headers for all system functions */
 #include "NextDivel.h"
  
- 
 #if defined(__cplusplus)
 extern "C" /* Use C linkage for kernel_main. */
 #endif
 void NextKernel_Main()
 {
 	ND_Versions_Startup();
+	//asm volatile ("int $0x3");
 }

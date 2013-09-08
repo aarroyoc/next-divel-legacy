@@ -1,0 +1,9 @@
+/* Common operations with Bus I/O */
+#ifndef ND_BUS_H
+#define ND_BUS_H
+#include "ND_LanguageC.h"
+void ND_Bus_outb(u16int port, u8int value);
+u8int ND_Bus_inb(u16int port);
+u16int ND_Bus_inw(u16int port);
+
+#endif
