@@ -6,7 +6,7 @@
 //
 #ifndef NEXTKERNEL_GDT_H
 #define NEXTKERNEL_GDT_H
-#include "LanguageC.h"
+#include "ND_LanguageC.h"
 
 // Initialisation function is publicly accessible.
 void NextKernel_GDT_Init();

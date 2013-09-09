@@ -7,6 +7,7 @@
 #ifndef NEXTKERNEL_GDT_H
 #define NEXTKERNEL_GDT_H
 #include "ND_LanguageC.h"
+#include "ND_Memory.h"
 
 // Initialisation function is publicly accessible.
 void NextKernel_GDT_Init();

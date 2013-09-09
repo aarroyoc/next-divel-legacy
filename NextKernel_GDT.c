@@ -2,7 +2,6 @@
 #include "ND_Bus.h"
 #include "NextKernel_ISR.h"
 #include "ND_Memory.h"
-//
 // descriptor_tables.c - Initialises the GDT and IDT, and defines the 
 //                       default ISR and IRQ handler.
 //                       Based on code from Bran's kernel development tutorials.
@@ -37,7 +36,7 @@ void NextKernel_GDT_Init()
     // Initialise the interrupt descriptor table.
     NextKernel_IDT_Start();
     // Nullify all the interrupt handlers.
-    memset((uint8_t *)&interrupt_handlers, 0, sizeof(isr_t)*256);
+    ND_Memory_Memset((uint8_t *)&interrupt_handlers, 0, sizeof(isr_t)*256);
 }
 
 static void NextKernel_GDT_Start()
@@ -73,7 +72,7 @@ static void NextKernel_IDT_Start()
     idt_ptr.limit = sizeof(NextKernel_IDT_Entry) * 256 -1;
     idt_ptr.base  = (uint32_t)&idt_entries;
 
-    memset((uint8_t *)&idt_entries, 0, sizeof(NextKernel_IDT_Entry)*256);
+    ND_Memory_Memset((uint8_t *)&idt_entries, 0, sizeof(NextKernel_IDT_Entry)*256);
 
     // Remap the irq table.
     ND_Bus_outb(0x20, 0x11);
