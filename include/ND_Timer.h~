@@ -1,0 +1,6 @@
+#ifndef ND_TIMER_H
+#define ND_TIMER_H
+#include "ND_LanguageC.h"
+
+
+#endif

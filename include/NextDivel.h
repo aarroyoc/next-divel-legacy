@@ -16,4 +16,6 @@
 #include "ND_Screen.h"
 /* NextDivel ASM 'glue' */
 #include "ND_Bus.h"
+/* NextDivel Timer */
+#include "ND_Timer.h"
 #endif

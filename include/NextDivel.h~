@@ -14,4 +14,8 @@
 #include "ND_Terminal2.h"
 /* NextDivel Screen complex functions (best for write text) */
 #include "ND_Screen.h"
+/* NextDivel ASM 'glue' */
+#include "ND_Bus.h"
+/* NextDivel Timer */
+#include "ND_Timer.h"
 #endif

@@ -1,155 +1,46 @@
-; Declare constants used for creating a multiboot header.
-MBALIGN     equ  1<<0                   ; align loaded modules on page boundaries
-MEMINFO     equ  1<<1                   ; provide memory map
-FLAGS       equ  MBALIGN | MEMINFO      ; this is the Multiboot 'flag' field
-MAGIC       equ  0x1BADB002             ; 'magic number' lets bootloader find the header
-CHECKSUM    equ -(MAGIC + FLAGS)        ; checksum of above, to prove we are multiboot
- 
-; Declare a header as in the Multiboot Standard. We put this into a special
-; section so we can force the header to be in the start of the final program.
-; You don't need to understand all these details as it is just magic values that
-; is documented in the multiboot standard. The bootloader will search for this
-; magic sequence and recognize us as a multiboot kernel.
-section .multiboot
-align 4
-	dd MAGIC
-	dd FLAGS
-	dd CHECKSUM
- 
-; Currently the stack pointer register (esp) points at anything and using it may
-; cause massive harm. Instead, we'll provide our own stack. We will allocate
-; room for a small temporary stack by creating a symbol at the bottom of it,
-; then allocating 16384 bytes for it, and finally creating a symbol at the top.
-section .bootstrap_stack
-align 4
-stack_bottom:
-times 16384 db 0
-stack_top:
- 
-; The linker script specifies _start as the entry point to the kernel and the
-; bootloader will jump to this position once the kernel has been loaded. It
-; doesn't make sense to return from this function as the bootloader is gone.
-section .text
-global _start
-_start:
-	; Welcome to kernel mode of NextDivel!
- 
-	; To set up a stack, we simply set the esp register to point to the top of
-	; our stack (as it grows downwards).
-	mov esp, stack_top
- 	
-	; We are now ready to actually execute C code. We cannot embed that in an
-	; assembly file, so we'll create a kernel.c file in a moment. In that file,
-	; we'll create a C entry point called kernel_main and call it here.
-	extern NextKernel_Main
-	call NextKernel_Main
- 
-	; In case the function returns, we'll want to put the computer into an
-	; infinite loop. To do that, we use the clear interrupt ('cli') instruction
-	; to disable interrupts, the halt instruction ('hlt') to stop the CPU until
-	; the next interrupt arrives, and jumping to the halt instruction if it ever
-	; continues execution, just to be safe.
-	cli
-.hang:
-	hlt
-	jmp .hang
-global gdt_flush
-gdt_flush:
-	mov eax, [esp+4]  ; Get the pointer to the GDT, passed as a parameter.
-	lgdt [eax]        ; Load the new GDT pointer
+;
+; kernel.asm -- Kernel start location. Also defines multiboot header.
+;           Based on Bran's kernel development tutorial file start.asm
+;
 
-	mov ax, 0x10      ; 0x10 is the offset in the GDT to our data segment
-	mov ds, ax        ; Load all data segment selectors
-	mov es, ax
-	mov fs, ax
-	mov gs, ax
-	mov ss, ax
-	jmp 0x08:.flush   ; 0x08 is the offset to our code segment: Far jump!
-.flush:
-   ret
+MBOOT_PAGE_ALIGN    equ 1<<0    ; Load kernel and modules on a page boundary
+MBOOT_MEM_INFO      equ 1<<1    ; Provide your kernel with memory info
+MBOOT_HEADER_MAGIC  equ 0x1BADB002 ; Multiboot Magic value
+; NOTE: We do not use MBOOT_AOUT_KLUDGE. It means that GRUB does not
+; pass us a symbol table.
+MBOOT_HEADER_FLAGS  equ MBOOT_PAGE_ALIGN | MBOOT_MEM_INFO
+MBOOT_CHECKSUM      equ -(MBOOT_HEADER_MAGIC + MBOOT_HEADER_FLAGS)
 
-global idt_flush    ; Allows the C code to call idt_flush().
 
-idt_flush:
-   mov eax, [esp+4]  ; Get the pointer to the IDT, passed as a parameter.
-   lidt [eax]        ; Load the IDT pointer.
-   ret
-%macro ISR_NOERRCODE 1  ; define a macro, taking one parameter
-  [GLOBAL isr%1]        ; %1 accesses the first parameter.
-  isr%1:
-    cli
-    push byte 0
-    push byte %1
-    jmp isr_common_stub
-%endmacro
+[BITS 32]                       ; All instructions should be 32-bit.
 
-%macro ISR_ERRCODE 1
-  [GLOBAL isr%1]
-  isr%1:
-    cli
-    push byte %1
-    jmp isr_common_stub
-%endmacro
-ISR_NOERRCODE 0
-ISR_NOERRCODE 1
-ISR_NOERRCODE 2
-ISR_NOERRCODE 3
-ISR_NOERRCODE 4
-ISR_NOERRCODE 5
-ISR_NOERRCODE 6
-ISR_NOERRCODE 7
-ISR_ERRCODE   8
-ISR_NOERRCODE 9
-ISR_ERRCODE   10
-ISR_ERRCODE   11
-ISR_ERRCODE   12
-ISR_ERRCODE   13
-ISR_ERRCODE   14
-ISR_NOERRCODE 15
-ISR_NOERRCODE 16
-ISR_NOERRCODE 17
-ISR_NOERRCODE 18
-ISR_NOERRCODE 19
-ISR_NOERRCODE 20
-ISR_NOERRCODE 21
-ISR_NOERRCODE 22
-ISR_NOERRCODE 23
-ISR_NOERRCODE 24
-ISR_NOERRCODE 25
-ISR_NOERRCODE 26
-ISR_NOERRCODE 27
-ISR_NOERRCODE 28
-ISR_NOERRCODE 29
-ISR_NOERRCODE 30
-ISR_NOERRCODE 31
+[GLOBAL mboot]                  ; Make 'mboot' accessible from C.
+[EXTERN code]                   ; Start of the '.text' section.
+[EXTERN bss]                    ; Start of the .bss section.
+[EXTERN end]                    ; End of the last loadable section.
 
- ; In isr.c
-[EXTERN NextKernel_ISR_Handler]
+mboot:
+    dd  MBOOT_HEADER_MAGIC      ; GRUB will search for this value on each
+                                ; 4-byte boundary in your kernel file
+    dd  MBOOT_HEADER_FLAGS      ; How GRUB should load your file / settings
+    dd  MBOOT_CHECKSUM          ; To ensure that the above values are correct
+    
+    dd  mboot                   ; Location of this descriptor
+    dd  code                    ; Start of kernel '.text' (code) section.
+    dd  bss                     ; End of kernel '.data' section.
+    dd  end                     ; End of kernel.
+    dd  start                   ; Kernel entry point (initial EIP).
 
-; This is our common ISR stub. It saves the processor state, sets
-; up for kernel mode segments, calls the C-level fault handler,
-; and finally restores the stack frame.
-isr_common_stub:
-   pusha                    ; Pushes edi,esi,ebp,esp,ebx,edx,ecx,eax
+[GLOBAL start]                  ; Kernel entry point.
+[EXTERN NextKernel_Main]                   ; This is the entry point of our C code
 
-   mov ax, ds               ; Lower 16-bits of eax = ds.
-   push eax                 ; save the data segment descriptor
+start:
+    ; Load multiboot information:
+    push    ebx
 
-   mov ax, 0x10  ; load the kernel data segment descriptor
-   mov ds, ax
-   mov es, ax
-   mov fs, ax
-   mov gs, ax
-
-   call NextKernel_ISR_Handler
-
-   pop eax        ; reload the original data segment descriptor
-   mov ds, ax
-   mov es, ax
-   mov fs, ax
-   mov gs, ax
-
-   popa                     ; Pops edi,esi,ebp...
-   add esp, 8     ; Cleans up the pushed error code and pushed ISR number
-   sti
-   iret           ; pops 5 things at once: CS, EIP, EFLAGS, SS, and ESP 
+    ; Execute the kernel:
+    cli                         ; Disable interrupts.
+    call NextKernel_Main        ; call our main() function.
+    jmp $                       ; Enter an infinite loop, to stop the processor
+                                ; executing whatever rubbish is in the memory
+                                ; after our kernel!

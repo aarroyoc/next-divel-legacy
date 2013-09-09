@@ -34,6 +34,7 @@ WARNFLAGS   += -Wno-pragmas -Wno-unused-but-set-parameter
 WARNFLAGS   += -Wno-unused-but-set-variable -Wno-unused-result
 WARNFLAGS   += -Wwrite-strings -Wdisabled-optimization -Wpointer-arith
 WARNFLAGS   += -Werror
+WARNFLAGS   += -Wno-unused-parameter
 ASFLAGS     := -felf
 ASFLAGS64   := -felf64
 CFLAGS      := $(INCLUDES) $(DEPENDFLAGS) $(BASEFLAGS) $(WARNFLAGS) $(NEXTFLAGS)

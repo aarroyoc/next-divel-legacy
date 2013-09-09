@@ -1,0 +1,4 @@
+#ifndef ND_STRING_H
+#define ND_STRING_H
+#include "ND_LanguageC.h"
+#endif
