@@ -140,3 +140,70 @@ void ND_Screen_ResetColor()
 	backColour=0;
 	foreColour=15;
 }
+void ND_Screen_WriteHex(uint32_t n)
+{
+    int32_t tmp;
+
+    ND_Screen_WriteString("0x");
+
+    char noZeroes = 1;
+
+    int i;
+    for (i = 28; i > 0; i -= 4)
+    {
+        tmp = (n >> i) & 0xF;
+        if (tmp == 0 && noZeroes != 0)
+        {
+            continue;
+        }
+    
+        if (tmp >= 0xA)
+        {
+            noZeroes = 0;
+            ND_Screen_Put (tmp-0xA+'a' );
+        }
+        else
+        {
+            noZeroes = 0;
+            ND_Screen_Put( tmp+'0' );
+        }
+    }
+  
+    tmp = n & 0xF;
+    if (tmp >= 0xA)
+    {
+        ND_Screen_Put (tmp-0xA+'a');
+    }
+    else
+    {
+        ND_Screen_Put (tmp+'0');
+    }
+}
+void ND_Screen_WriteDec(uint32_t n)
+{
+   if (n == 0)
+    {
+        ND_Screen_Put('0');
+        return;
+    }
+
+    int32_t acc = n;
+    char c[32];
+    int i = 0;
+    while (acc > 0)
+    {
+        c[i] = '0' + acc%10;
+        acc /= 10;
+        i++;
+    }
+    c[i] = 0;
+
+    char c2[32];
+    c2[i--] = 0;
+    int j = 0;
+    while(i >= 0)
+    {
+        c2[i--] = c[j++];
+    }
+    ND_Screen_WriteString(c2);
+}

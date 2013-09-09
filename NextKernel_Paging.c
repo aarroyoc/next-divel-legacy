@@ -2,7 +2,9 @@
 //             Written for JamesM's kernel development tutorials.
 
 #include "NextKernel_Paging.h"
+#include "ND_Array.h"
 #include "ND_Memory.h"
+#include "ND_Screen.h"
 #include "ND_Error.h"
 
 // The kernel's page directory
@@ -17,6 +19,7 @@ uint32_t nframes;
 
 // Defined in kheap.c
 extern uint32_t placement_address;
+extern heap_t *kheap;
 
 // Macros used in the bitset algorithms.
 #define INDEX_FROM_BIT(a) (a/(8*4))
@@ -68,7 +71,7 @@ static uint32_t first_frame()
             }
         }
     }
-    return 0;
+   return 0;
 }
 
 // Function to allocate a frame.
@@ -115,12 +118,22 @@ void NextKernel_Paging_Init()
     uint32_t mem_end_page = 0x1000000;
     
     nframes = mem_end_page / 0x1000;
-    frames = (uint32_t*)ND_Memory_Alloc(INDEX_FROM_BIT(nframes));
+    frames = (uint32_t*)kmalloc(INDEX_FROM_BIT(nframes));
     ND_Memory_Memset((uint8_t *)frames, 0, INDEX_FROM_BIT(nframes));
     
     // Let's make a page directory.
-    kernel_directory = (page_directory_t*)ND_Memory_AllocComplete(sizeof(page_directory_t),1,0);
+    kernel_directory = (page_directory_t*)kmalloc_a(sizeof(page_directory_t));
+    ND_Memory_Memset((uint8_t *)kernel_directory, 0, sizeof(page_directory_t));
     current_directory = kernel_directory;
+
+    // Map some pages in the kernel heap area.
+    // Here we call get_page but not alloc_frame. This causes page_table_t's 
+    // to be created where necessary. We can't allocate frames yet because they
+    // they need to be identity mapped first below, and yet we can't increase
+    // placement_address between identity mapping and enabling the heap!
+    int i = 0;
+    for (i = KHEAP_START; i < KHEAP_START+KHEAP_INITIAL_SIZE; i += 0x1000)
+        get_page(i, 1, kernel_directory);
 
     // We need to identity map (phys addr = virt addr) from
     // 0x0 to the end of used memory, so we can access this
@@ -129,18 +142,28 @@ void NextKernel_Paging_Init()
     // inside the loop body we actually change placement_address
     // by calling kmalloc(). A while loop causes this to be
     // computed on-the-fly rather than once at the start.
-    int i = 0;
-    while (i < placement_address)
+    // Allocate a lil' bit extra so the kernel heap can be
+    // initialised properly.
+    i = 0;
+    while (i < placement_address+0x1000)
     {
         // Kernel code is readable but not writeable from userspace.
         alloc_frame( get_page(i, 1, kernel_directory), 0, 0);
         i += 0x1000;
     }
+
+    // Now allocate those pages we mapped earlier.
+    for (i = KHEAP_START; i < KHEAP_START+KHEAP_INITIAL_SIZE; i += 0x1000)
+        alloc_frame( get_page(i, 1, kernel_directory), 0, 0);
+
     // Before we enable paging, we must register our page fault handler.
     NextKernel_ISR_RegisterInterruptHandler(14, page_fault);
 
     // Now, enable paging!
     switch_page_directory(kernel_directory);
+
+    // Initialise the kernel heap.
+    kheap = create_heap(KHEAP_START, KHEAP_START+KHEAP_INITIAL_SIZE, 0xCFFFF000, 0, 0);
 }
 
 void switch_page_directory(page_directory_t *dir)
@@ -159,6 +182,7 @@ page_t *get_page(uint32_t address, int make, page_directory_t *dir)
     address /= 0x1000;
     // Find the page table containing this address.
     uint32_t table_idx = address / 1024;
+
     if (dir->tables[table_idx]) // If this table is already assigned
     {
         return &dir->tables[table_idx]->pages[address%1024];
@@ -166,7 +190,8 @@ page_t *get_page(uint32_t address, int make, page_directory_t *dir)
     else if(make)
     {
         uint32_t tmp;
-        dir->tables[table_idx] = (page_table_t*)ND_Memory_AllocComplete(sizeof(page_table_t),1, &tmp);
+        dir->tables[table_idx] = (page_table_t*)kmalloc_ap(sizeof(page_table_t), &tmp);
+        ND_Memory_Memset((uint8_t *)dir->tables[table_idx], 0, 0x1000);
         dir->tablesPhysical[table_idx] = tmp | 0x7; // PRESENT, RW, US.
         return &dir->tables[table_idx]->pages[address%1024];
     }
@@ -185,13 +210,20 @@ void page_fault(registers_t regs)
     asm volatile("mov %%cr2, %0" : "=r" (faulting_address));
     
     // The error code gives us details of what happened.
-    /*int present   = !(regs.err_code & 0x1); // Page not present
+    int present   = !(regs.err_code & 0x1); // Page not present
     int rw = regs.err_code & 0x2;           // Write operation?
     int us = regs.err_code & 0x4;           // Processor was in user-mode?
     int reserved = regs.err_code & 0x8;     // Overwritten CPU-reserved bits of page entry?
-    int id = regs.err_code & 0x10;          // Caused by an instruction fetch?*/
+    //int id = regs.err_code & 0x10;          // Caused by an instruction fetch?
 
     // Output an error message.
-    ND_Error_WriteString("NextPANIC. Page fault");
+    ND_Screen_WriteString("Page fault! ( ");
+    if (present) {ND_Screen_WriteString("present ");}
+    if (rw) {ND_Screen_WriteString("read-only ");}
+    if (us) {ND_Screen_WriteString("user-mode ");}
+    if (reserved) {ND_Screen_WriteString("reserved ");}
+    ND_Screen_WriteString(") at 0x");
+    ND_Screen_WriteHex(faulting_address);
+    ND_Screen_WriteString("\n");
+    ND_Error_WriteString("KERNEL PANIC!");
 }
-

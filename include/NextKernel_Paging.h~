@@ -57,8 +57,6 @@ page_t *get_page(uint32_t address, int make, page_directory_t *dir);
 /**
   Handler for page faults.
 **/
-/*
-*/
-static uint32_t test_frame(uint32_t frame_addr); 
-
+void page_fault(registers_t regs);
+void free_frame(page_t *page);
 #endif
