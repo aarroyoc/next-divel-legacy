@@ -41,3 +41,9 @@ int strcmp(char *str1, char *str2)
   
       return failed;
 }
+size_t strlen(const char *s)
+{
+size_t sz = 0;
+while(*s++) sz++;
+return sz;
+}

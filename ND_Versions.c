@@ -34,5 +34,5 @@ void ND_Versions_Startup()
 	/*ND_Terminal2_Clear();
 	ND_Terminal2_WriteString("NextDivel 0.0.1 (C) Adrian Arroyo Calle 2013");*/
 	ND_Screen_Clear();
-	ND_Screen_WriteString("NextDivel 0.0.1\n(C) Adrian Arroyo Calle 2013");
+	ND_Screen_WriteString("NextDivel 0.0.1\n(C) Adrian Arroyo Calle 2013\n");
 }

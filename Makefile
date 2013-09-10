@@ -18,7 +18,8 @@ OBJS        += $(patsubst %.c,%.o,$(SOURCES_C))
 DEPENDFLAGS := -MD -MP
 NEXTFLAGS   := -DNEXT_DIVEL
 INCLUDES    := -I include
-BASEFLAGS   := -O2 -fpic -pedantic -pedantic-errors -nostdlib
+BASEFLAGS   := -O2 -fpic -nostdlib
+#BASEFLAGS   += -pedantic -pedantic-errors
 BASEFLAGS   += -nostartfiles -ffreestanding -nodefaultlibs
 BASEFLAGS   += -fno-builtin -fomit-frame-pointer
 WARNFLAGS   := -Wall -Wextra -Wshadow -Wcast-align -Wwrite-strings
@@ -37,7 +38,7 @@ WARNFLAGS   += -Werror
 WARNFLAGS   += -Wno-unused-parameter
 ASFLAGS     := -felf
 ASFLAGS64   := -felf64
-CFLAGS      := $(INCLUDES) $(DEPENDFLAGS) $(BASEFLAGS) $(WARNFLAGS) $(NEXTFLAGS)
+CFLAGS      := $(INCLUDES) $(DEPENDFLAGS) $(BASEFLAGS) $(NEXTFLAGS) #$(WARNFLAGS)
 CFLAGS      += -std=gnu99
 #Build
 all: nextdivel.img
@@ -66,11 +67,17 @@ test64:
 iso:
 	mkdir -p isodir
 	mkdir -p isodir/boot
+	mkdir -p isodir/nextfs
+	gcc -o tools/make_initrd tools/make_initrd.c
+	tools/make_initrd README.md README.md
 	cp nextdivel.elf isodir/boot/nextdivel.elf
 	cp nextdivel64.elf isodir/boot/nextdivel64.elf
+	cp initrd.img isodir/nextfs/nextfs.img
 	mkdir -p isodir/boot/grub
 	cp grub.cfg isodir/boot/grub/grub.cfg
 	grub-mkrescue -o nextdivel.iso isodir
+testiso: nextdivel.iso
+	qemu-system-i386 -cdrom nextdivel.iso
 # C.
 %.o: %.c Makefile
 	$(CC) $(CFLAGS) -c $< -o $@
